@@ -72,21 +72,20 @@ When analyzing a contract document, extract and assess the following sections:
 Respond ONLY with valid JSON (no markdown fences, no preamble) matching this exact structure:
 {"contractSummary":{"customerName":"string","customerCode":"string or N/A","businessSegment":"string","geography":"string","contractDate":"string","contractValue":"string","currency":"string","contractDuration":"string","paymentTerms":"string","scopeDescription":"string"},"contractIdentification":{"partiesApproved":{"answer":"Yes/No","comment":"string"},"rightsIdentified":{"answer":"Yes/No","comment":"string"},"paymentTermsIdentified":{"answer":"Yes/No","comment":"string"},"commercialSubstance":{"answer":"Yes/No","comment":"string"},"collectabilityProbable":{"answer":"Yes/No","comment":"string"},"conclusion":"string"},"performanceObligations":[{"id":1,"description":"string","category":"Product/Maintenance/Services-Fixed Price/Services-Time & Material/Managed Services/Operational Support","isDistinct":{"answer":"Yes/No","comment":"string"},"isSeries":{"answer":"Yes/No/N.A.","comment":"string"},"principalOrAgent":{"conclusion":"Principal/Agent","controlBeforeTransfer":{"answer":"Yes/No/N.A.","comment":"string"},"responsibleForFulfillment":{"answer":"Yes/No/N.A.","comment":"string"},"inventoryRisk":{"answer":"Yes/No/N.A.","comment":"string"},"pricingDiscretion":{"answer":"Yes/No","comment":"string"}},"revenueRecognition":{"pattern":"Over Time/Point in Time","method":"string","comment":"string"}}],"transactionPrice":{"totalPrice":"string","variableConsideration":{"answer":"Yes/No","comment":"string"},"bonusesPenalties":{"answer":"Yes/No","comment":"string"},"significantFinancing":{"answer":"Yes/No","comment":"string"},"conclusion":"string"},"priceAllocation":{"standaloneSellingPriceObservable":{"answer":"Yes/No","comment":"string"},"allocationMethodology":"string","allocatedPrices":[{"poId":1,"amount":"string","comment":"string"}],"conclusion":"string"},"overallConclusion":"string"}`;
 
-// ── Anthropic API call ────────────────────────────────────────────────────────
+// ── API call via Netlify Function ────────────────────────────────────────────
 async function callClaude(systemPrompt, userPrompt) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("/api/analyze", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
       system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
+      prompt: userPrompt,
+      max_tokens: 8192,
     }),
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
   const data = await res.json();
-  return data.content?.[0]?.text || "";
+  return data.text || "";
 }
 
 function parseJSON(text) {
@@ -95,16 +94,16 @@ function parseJSON(text) {
 }
 
 // ── Tiny helpers ──────────────────────────────────────────────────────────────
-function Badge({ children, variant = "default", className = "" }) {
-  const base = "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium";
+function Badge({ children, variant = "default" }) {
+  const base = {display:"inline-flex",alignItems:"center",padding:"2px 8px",borderRadius:4,fontSize:11,fontWeight:500};
   const variants = {
-    default: "bg-[#1a3a5c] text-[#93c5fd]",
-    outline: "border border-[#2d4a6a] text-[#93c5fd]",
-    secondary: "bg-[#1e2d3d] text-[#94a3b8]",
-    success: "bg-[#0f2a1e] text-[#4ade80]",
-    warning: "bg-[#2a1f0a] text-[#fbbf24]",
+    default: {background:"#1a3a5c",color:"#93c5fd"},
+    outline: {border:"1px solid #2d4a6a",color:"#93c5fd",background:"transparent"},
+    secondary: {background:"#1e2d3d",color:"#94a3b8"},
+    success: {background:"#0f2a1e",color:"#4ade80"},
+    warning: {background:"#2a1f0a",color:"#fbbf24"},
   };
-  return <span className={`${base} ${variants[variant] || variants.default} ${className}`}>{children}</span>;
+  return <span style={{...base,...(variants[variant]||variants.default)}}>{children}</span>;
 }
 
 function AnswerPill({ answer }) {
